@@ -1,0 +1,12 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+
+<suite name="Player Controller Regression suite">
+    <test name="Player Controller Test" parallel="methods" thread-count="3">
+        <packages>
+            <package
+                    name="com.controller.player.*">
+            </package>
+        </packages>
+    </test>
+</suite>

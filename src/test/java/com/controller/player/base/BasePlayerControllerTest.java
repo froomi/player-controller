@@ -7,22 +7,18 @@ import com.controller.player.domain.dto.PlayerIdRequestDTO;
 import com.controller.player.domain.dto.PlayerRequestDTO;
 import com.controller.player.domain.dto.PlayerResponseDTO;
 import com.controller.player.enums.PlayerRoleEnum;
+import com.controller.player.helper.PlayerHelperContext;
 import com.controller.player.util.RandomUtil;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static com.controller.player.properties.PlayerControllerProperties.*;
 import static com.controller.player.properties.PlayerControllerProperties.MAX_PASSWORD_LENGTH;
 
 public class BasePlayerControllerTest {
-    protected ThreadLocal<List<PlayerIdRequestDTO>> createdPlayersToDelete = ThreadLocal.withInitial(ArrayList::new);
-    protected ThreadLocal<PlayerIdRequestDTO> createdPlayerIdRequest = new ThreadLocal<>();
-    protected ThreadLocal<PlayerRequestDTO> createdPlayerRequest = new ThreadLocal<>();
+    protected ThreadLocal<PlayerHelperContext> playerHelperContext = ThreadLocal.withInitial(PlayerHelperContext::new);
     protected PlayerBO playerBo = new PlayerBO();
 
     @BeforeSuite(description = "Create admin player before running tests")
@@ -51,14 +47,12 @@ public class BasePlayerControllerTest {
 
     @AfterMethod(alwaysRun = true, onlyForGroups = "CleanUpAfterCreation")
     public void deletePlayerAfterCreation() {
-        List<PlayerIdRequestDTO> ids = createdPlayersToDelete.get();
-        if (ids != null) {
-            for (PlayerIdRequestDTO id : ids) {
-                playerBo.deletePlayerById(id, SUPERVISOR_LOGIN);
-            }
-            ids.clear();
+        PlayerHelperContext context = playerHelperContext.get();
+        for (PlayerIdRequestDTO id : context.getCreatedPlayersToDelete()) {
+            playerBo.deletePlayerById(id, SUPERVISOR_LOGIN);
         }
-        createdPlayersToDelete.remove();
+        context.getCreatedPlayersToDelete().clear();
+        playerHelperContext.remove();
     }
 
     @DataProvider
@@ -84,21 +78,10 @@ public class BasePlayerControllerTest {
         PlayerResponseDTO playerSerializedResponse = playerBo.createPlayer(playerCreateRequest,
                 SUPERVISOR_LOGIN).as(PlayerResponseDTO.class);
 
-        createdPlayerRequest.set(playerCreateRequest);
-        setCreatedPlayerIdRequest(playerSerializedResponse);
+        PlayerHelperContext context = playerHelperContext.get();
+        context.setCreatedPlayerRequest(playerCreateRequest);
 
-        addCreatedPlayerForFutureDeletion(playerSerializedResponse);
-    }
-
-    protected void setCreatedPlayerIdRequest(PlayerResponseDTO playerResponse) {
-        PlayerIdRequestDTO playerIdRequest = new PlayerIdRequestDTO();
-        playerIdRequest.setPlayerId(playerResponse.getId());
-        createdPlayerIdRequest.set(playerIdRequest);
-    }
-
-    protected void addCreatedPlayerForFutureDeletion(PlayerResponseDTO playerSerializedResponse) {
-        PlayerIdRequestDTO playerIdRequest = new PlayerIdRequestDTO();
-        playerIdRequest.setPlayerId(playerSerializedResponse.getId());
-        createdPlayersToDelete.get().add(playerIdRequest);
+        context.setCreatedPlayerIdRequest(playerSerializedResponse);
+        context.getCreatedPlayersToDelete().add(context.getCreatedPlayerIdRequest());
     }
 }

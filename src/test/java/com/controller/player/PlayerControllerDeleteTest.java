@@ -2,6 +2,7 @@ package com.controller.player;
 
 import com.controller.player.base.BasePlayerControllerTest;
 import com.controller.player.domain.dto.PlayerIdRequestDTO;
+import com.controller.player.helper.PlayerHelperContext;
 import io.qameta.allure.Issue;
 import org.testng.annotations.Test;
 
@@ -11,33 +12,39 @@ public class PlayerControllerDeleteTest extends BasePlayerControllerTest {
 
     @Test(description = "Delete player by ID successfully", groups = "PlayerCreatedAsUser")
     public void testDeletePlayerById() {
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), SUPERVISOR_LOGIN)
+        PlayerHelperContext context = playerHelperContext.get();
+
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), SUPERVISOR_LOGIN)
                 .then().statusCode(204)
                 .log().all();
 
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), SUPERVISOR_LOGIN)
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), SUPERVISOR_LOGIN)
                 .then().statusCode(403)
                 .log().all();
     }
 
     @Test(description = "Admin deletes own account successfully", groups = "PlayerCreatedAsAdmin")
     public void testAdminDeletesOwnAccount() {
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), createdPlayerRequest.get().getLogin())
+        PlayerHelperContext context = playerHelperContext.get();
+
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), context.getCreatedPlayerRequest().getLogin())
                 .then().statusCode(204)
                 .log().all();
 
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), createdPlayerRequest.get().getLogin())
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), context.getCreatedPlayerRequest().getLogin())
                 .then().statusCode(403)
                 .log().all();
     }
 
     @Test(description = "Supervisor deletes admin's account successfully", groups = "PlayerCreatedAsAdmin")
     public void testSupervisorDeletesAdminAccount() {
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), SUPERVISOR_LOGIN)
+        PlayerHelperContext context = playerHelperContext.get();
+
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), SUPERVISOR_LOGIN)
                 .then().statusCode(204)
                 .log().all();
 
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), SUPERVISOR_LOGIN)
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), SUPERVISOR_LOGIN)
                 .then().statusCode(403)
                 .log().all();
     }
@@ -56,7 +63,9 @@ public class PlayerControllerDeleteTest extends BasePlayerControllerTest {
     @Issue("BUG-10") //Regular user can delete other user's account
     @Test(description = "Regular user cannot delete other user's account", groups = "PlayerCreatedAsUser")
     public void testUserCannotDeleteOtherUserAccount() {
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), createdPlayerRequest.get().getLogin())
+        PlayerHelperContext context = playerHelperContext.get();
+
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), context.getCreatedPlayerRequest().getLogin())
                 .then().statusCode(403)
                 .log().all();
     }
@@ -73,7 +82,9 @@ public class PlayerControllerDeleteTest extends BasePlayerControllerTest {
     @Issue("BUG-11") //Regular user can delete itself
     @Test(description = "Regular user cannot delete itself", groups = "PlayerCreatedAsUser")
     public void testUserCannotDeleteItself() {
-        playerBo.deletePlayerById(createdPlayerIdRequest.get(), createdPlayerRequest.get().getLogin())
+        PlayerHelperContext context = playerHelperContext.get();
+
+        playerBo.deletePlayerById(context.getCreatedPlayerIdRequest(), context.getCreatedPlayerRequest().getLogin())
                 .then().statusCode(403)
                 .log().all();
     }

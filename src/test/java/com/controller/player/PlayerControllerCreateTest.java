@@ -7,6 +7,7 @@ import com.controller.player.domain.builder.PlayerRequestBuilder;
 import com.controller.player.domain.dto.PlayerRequestDTO;
 import com.controller.player.domain.dto.PlayerResponseDTO;
 import com.controller.player.enums.PlayerRoleEnum;
+import com.controller.player.helper.PlayerHelperContext;
 import com.controller.player.util.RandomUtil;
 import io.qameta.allure.Issue;
 import org.testng.annotations.Test;
@@ -20,6 +21,7 @@ public class PlayerControllerCreateTest extends BasePlayerControllerTest {
     @Test(dataProvider = "powerUserBoundaryValues", description = "power user (supervisor/admin) creates valid player with boundary required fields values", groups = "CleanUpAfterCreation")
     public void powerUserCreatesValidPlayerBoundaryValues(PowerUserBoundaryValuesData powerUserBoundaryValues) {
         SoftAssert softAssert = new SoftAssert();
+        PlayerHelperContext context = playerHelperContext.get();
 
         PlayerRequestDTO playerCreateRequest = new PlayerRequestBuilder()
                 .withAge(powerUserBoundaryValues.getAge())
@@ -37,7 +39,7 @@ public class PlayerControllerCreateTest extends BasePlayerControllerTest {
                 .log().all()
                 .extract().as(PlayerResponseDTO.class);
 
-        addCreatedPlayerForFutureDeletion(playerSerializedResponse);
+        context.addCreatedPlayerToDelete(playerSerializedResponse);
 
         PlayerAssertion.assertRequiredFieldsPresentInPlayerResponse(softAssert, playerCreateRequest, playerSerializedResponse);
         softAssert.assertAll();
@@ -100,10 +102,12 @@ public class PlayerControllerCreateTest extends BasePlayerControllerTest {
     @Issue("BUG-3") //System allows creation of users with duplicate logins
     @Test(description = "Supervisor creates user with existing login and fails", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void supervisorCreatesUserWithExistingLoginAndFails() {
+        PlayerHelperContext context = playerHelperContext.get();
+
         PlayerRequestDTO secondPlayerCreateRequest = new PlayerRequestBuilder()
                 .withAge(RandomUtil.randomAge(MIN_VALID_AGE, MAX_VALID_AGE))
                 .withGender(RandomUtil.randomGender())
-                .withLogin(createdPlayerRequest.get().getLogin())
+                .withLogin(context.getCreatedPlayerRequest().getLogin())
                 .withPassword(RandomUtil.randomPassword(MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH))
                 .withRole(PlayerRoleEnum.USER.getRole())
                 .withScreenName(RandomUtil.randomScreenName())

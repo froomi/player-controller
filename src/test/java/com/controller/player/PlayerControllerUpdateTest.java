@@ -6,6 +6,7 @@ import com.controller.player.domain.builder.PlayerRequestBuilder;
 import com.controller.player.domain.dto.PlayerRequestDTO;
 import com.controller.player.domain.dto.PlayerResponseDTO;
 import com.controller.player.enums.PlayerRoleEnum;
+import com.controller.player.helper.PlayerHelperContext;
 import com.controller.player.util.RandomUtil;
 import io.qameta.allure.Issue;
 import org.testng.annotations.Test;
@@ -19,6 +20,7 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
     @Test(description = "Supervisor updates existing player's screenName successfully", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testUpdatePlayerAsSupervisor() {
         SoftAssert softAssert = new SoftAssert();
+        PlayerHelperContext context = playerHelperContext.get();
 
         String updatedScreenName = RandomUtil.randomScreenName();
 
@@ -26,7 +28,7 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
                 .withScreenName(updatedScreenName)
                 .build();
 
-        PlayerResponseDTO playerUpdateResponse = playerBo.updatePlayerById(createdPlayerIdRequest.get().getPlayerId(), updateScreenNameRequest, SUPERVISOR_LOGIN)
+        PlayerResponseDTO playerUpdateResponse = playerBo.updatePlayerById(context.getCreatedPlayerIdRequest().getPlayerId(), updateScreenNameRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(200)
                 .log().all()
                 .extract().as(PlayerResponseDTO.class);
@@ -39,6 +41,7 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
     @Test(description = "Admin updates own login successfully", groups = {"PlayerCreatedAsAdmin", "CleanUpAfterCreation"})
     public void testUpdateOwnPasswordAsAdmin() {
         SoftAssert softAssert = new SoftAssert();
+        PlayerHelperContext context = playerHelperContext.get();
 
         String updatedLogin = RandomUtil.randomLogin(PlayerRoleEnum.ADMIN.getRole());
 
@@ -46,7 +49,7 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
                 .withLogin(updatedLogin)
                 .build();
 
-        PlayerResponseDTO playerUpdateResponse = playerBo.updatePlayerById(createdPlayerIdRequest.get().getPlayerId(), updatePasswordRequest, SUPERVISOR_LOGIN)
+        PlayerResponseDTO playerUpdateResponse = playerBo.updatePlayerById(context.getCreatedPlayerIdRequest().getPlayerId(), updatePasswordRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(200)
                 .log().all()
                 .extract().as(PlayerResponseDTO.class);
@@ -59,16 +62,17 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
     @Test(description = "User updates own gender successfully", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testUpdateOwnGenderAsUser() {
         SoftAssert softAssert = new SoftAssert();
+        PlayerHelperContext context = playerHelperContext.get();
 
-        Long userId = createdPlayerIdRequest.get().getPlayerId();
-        String oldGender = createdPlayerRequest.get().getGender();
+        Long userId = context.getCreatedPlayerIdRequest().getPlayerId();
+        String oldGender = context.getCreatedPlayerRequest().getGender();
         String newGender = changeGender(oldGender);
 
         PlayerRequestDTO updateGenderRequest = new PlayerRequestBuilder()
                 .withGender(newGender)
                 .build();
 
-        PlayerResponseDTO playerUpdateResponse = playerBo.updatePlayerById(userId, updateGenderRequest, createdPlayerRequest.get().getLogin())
+        PlayerResponseDTO playerUpdateResponse = playerBo.updatePlayerById(userId, updateGenderRequest, context.getCreatedPlayerRequest().getLogin())
                 .then().statusCode(200)
                 .log().all()
                 .extract().as(PlayerResponseDTO.class);
@@ -82,12 +86,13 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
     @Test(description = "Supervisor attempt to update user's role is rejected (Role field cannot be updated)", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testUpdateUserRoleAsSupervisorAndFails() {
         String updatedRole = PlayerRoleEnum.ADMIN.getRole();
+        PlayerHelperContext context = playerHelperContext.get();
 
         PlayerRequestDTO updateRequest = new PlayerRequestBuilder()
                 .withRole(updatedRole)
                 .build();
 
-        playerBo.updatePlayerById(createdPlayerIdRequest.get().getPlayerId(), updateRequest, SUPERVISOR_LOGIN)
+        playerBo.updatePlayerById(context.getCreatedPlayerIdRequest().getPlayerId(), updateRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(400)
                 .log().all();
     }
@@ -95,6 +100,8 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
     @Issue("BUG-7") // User can update another user's data, but should not be able to
     @Test(description = "User cannot update another user's data", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testUpdateAnotherUserAsUserAndFails() {
+        PlayerHelperContext context = playerHelperContext.get();
+
         PlayerRequestDTO secondUserRequest = new PlayerRequestBuilder()
                 .withAge(RandomUtil.randomAge(MIN_VALID_AGE, MAX_VALID_AGE))
                 .withGender(RandomUtil.randomGender())
@@ -107,20 +114,22 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
         PlayerResponseDTO secondUserResponse = playerBo.createPlayer(secondUserRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(200).log().all().extract().as(PlayerResponseDTO.class);
 
-        addCreatedPlayerForFutureDeletion(secondUserResponse);
+        context.addCreatedPlayerToDelete(secondUserResponse);
 
         String updatedScreenName = RandomUtil.randomScreenName();
         PlayerRequestDTO updateRequest = new PlayerRequestBuilder()
                 .withScreenName(updatedScreenName)
                 .build();
 
-        playerBo.updatePlayerById(createdPlayerIdRequest.get().getPlayerId(), updateRequest, secondUserRequest.getLogin())
+        playerBo.updatePlayerById(context.getCreatedPlayerIdRequest().getPlayerId(), updateRequest, secondUserRequest.getLogin())
                 .then().statusCode(403)
                 .log().all();
     }
 
     @Test(description = "Supervisor updates existing player's login with the login of other existing player and fails", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testUpdatePlayerLoginToExistingLoginAsSupervisorAndFails() {
+        PlayerHelperContext context = playerHelperContext.get();
+
         PlayerRequestDTO secondUserRequest = new PlayerRequestBuilder()
                 .withAge(RandomUtil.randomAge(MIN_VALID_AGE, MAX_VALID_AGE))
                 .withGender(RandomUtil.randomGender())
@@ -133,13 +142,13 @@ public class PlayerControllerUpdateTest extends BasePlayerControllerTest {
         PlayerResponseDTO secondUserResponse = playerBo.createPlayer(secondUserRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(200).log().all().extract().as(PlayerResponseDTO.class);
 
-        addCreatedPlayerForFutureDeletion(secondUserResponse);
+        context.addCreatedPlayerToDelete(secondUserResponse);
 
         PlayerRequestDTO updateLoginRequest = new PlayerRequestBuilder()
                 .withLogin(secondUserRequest.getLogin())
                 .build();
 
-        playerBo.updatePlayerById(createdPlayerIdRequest.get().getPlayerId(), updateLoginRequest, SUPERVISOR_LOGIN)
+        playerBo.updatePlayerById(context.getCreatedPlayerIdRequest().getPlayerId(), updateLoginRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(409)
                 .log().all();
     }

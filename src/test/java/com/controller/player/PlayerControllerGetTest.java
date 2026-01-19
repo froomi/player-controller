@@ -7,6 +7,7 @@ import com.controller.player.domain.dto.PlayerIdRequestDTO;
 import com.controller.player.domain.dto.PlayerRequestDTO;
 import com.controller.player.domain.dto.PlayerResponseDTO;
 import com.controller.player.enums.PlayerRoleEnum;
+import com.controller.player.helper.PlayerHelperContext;
 import com.controller.player.util.RandomUtil;
 import io.qameta.allure.Issue;
 import org.testng.annotations.Test;
@@ -19,13 +20,14 @@ public class PlayerControllerGetTest extends BasePlayerControllerTest {
     @Test(description = "Get player by ID returns correct data", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testGetPlayerById() {
         SoftAssert softAssert = new SoftAssert();
+        PlayerHelperContext context = playerHelperContext.get();
 
-        PlayerResponseDTO getPlayerResponse = playerBo.getPlayerById(createdPlayerIdRequest.get())
+        PlayerResponseDTO getPlayerResponse = playerBo.getPlayerById(context.getCreatedPlayerIdRequest())
                 .then().statusCode(200)
                 .log().all()
                 .extract().as(PlayerResponseDTO.class);
 
-        PlayerAssertion.assertRequiredFieldsPresentInPlayerResponse(softAssert, createdPlayerRequest.get(), getPlayerResponse);
+        PlayerAssertion.assertRequiredFieldsPresentInPlayerResponse(softAssert, context.getCreatedPlayerRequest(), getPlayerResponse);
 
         softAssert.assertAll();
     }
@@ -33,6 +35,7 @@ public class PlayerControllerGetTest extends BasePlayerControllerTest {
     @Test(description = "Get user after recent update reflects latest data", groups = {"PlayerCreatedAsUser", "CleanUpAfterCreation"})
     public void testGetSupervisorById() {
         SoftAssert softAssert = new SoftAssert();
+        PlayerHelperContext context = playerHelperContext.get();
 
         String updatedScreenName = RandomUtil.randomScreenName();
         String updatedLogin = RandomUtil.randomLogin(PlayerRoleEnum.USER.getRole());
@@ -44,11 +47,11 @@ public class PlayerControllerGetTest extends BasePlayerControllerTest {
                 .withAge(updatedAge)
                 .build();
 
-        playerBo.updatePlayerById(createdPlayerIdRequest.get().getPlayerId(), updateScreenNameRequest, SUPERVISOR_LOGIN)
+        playerBo.updatePlayerById(context.getCreatedPlayerIdRequest().getPlayerId(), updateScreenNameRequest, SUPERVISOR_LOGIN)
                 .then().statusCode(200)
                 .log().all();
 
-        PlayerResponseDTO getPlayerResponse = playerBo.getPlayerById(createdPlayerIdRequest.get())
+        PlayerResponseDTO getPlayerResponse = playerBo.getPlayerById(context.getCreatedPlayerIdRequest())
                 .then().statusCode(200)
                 .log().all()
                 .extract().as(PlayerResponseDTO.class);
